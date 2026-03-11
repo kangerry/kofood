@@ -88,7 +88,9 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             const Text('Metode Pembayaran', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
             RadioListTile(value: 'cod', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('COD')),
             RadioListTile(value: 'dompet', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('Dompet')),
-            RadioListTile(value: 'pg', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('Payment Gateway')),
+            RadioListTile(value: 'pg_checkout', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('Gateway (DOKU Checkout)')),
+            RadioListTile(value: 'pg_va', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('Gateway (Virtual Account)')),
+            RadioListTile(value: 'pg_qris', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('Gateway (QRIS)')),
           ],
         ),
       ),
@@ -126,7 +128,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                         if (!mounted) return;
                         final id = res['id']?.toString() ?? '0';
                         final payUrl = (res['pay_url'] as String?)?.trim();
-                        if (_payment == 'pg' && payUrl != null && payUrl.isNotEmpty) {
+                        if ((_payment == 'pg_checkout' || _payment == 'pg_va' || _payment == 'pg_qris') && payUrl != null && payUrl.isNotEmpty) {
                           final uri = Uri.parse(payUrl);
                           try {
                             await launchUrl(uri, mode: LaunchMode.platformDefault);
