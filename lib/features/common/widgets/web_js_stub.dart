@@ -1,0 +1,3 @@
+bool hasGoogleMaps() {
+  return false;
+}
