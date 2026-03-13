@@ -21,6 +21,11 @@ Future<void> main() async {
   final url = p.getString('base_url');
   if (url != null && url.isNotEmpty) {
     RuntimeConfig.baseUrl = url;
+  } else if (kIsWeb) {
+    final host = Uri.base.host;
+    final origin = Uri.base.origin;
+    final isLocal = host == 'localhost' || host == '127.0.0.1';
+    RuntimeConfig.baseUrl = isLocal ? 'http://localhost:8000' : origin;
   }
   final webClientId = p.getString('google_web_client_id');
   if (webClientId != null && webClientId.isNotEmpty) {

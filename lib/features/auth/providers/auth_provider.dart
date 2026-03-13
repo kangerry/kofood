@@ -72,7 +72,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         provider.setCustomParameters({'prompt': 'select_account'});
         credential = await FirebaseAuth.instance.signInWithPopup(provider);
       } else {
-        final googleUser = await GoogleSignIn(scopes: const ['email', 'profile', 'openid']).signIn();
+        final g = GoogleSignIn(scopes: const ['email', 'profile', 'openid']);
+        try { await g.signOut(); } catch (_) {}
+        final googleUser = await g.signIn();
         if (googleUser == null) {
           throw Exception('Login dibatalkan');
         }
@@ -215,6 +217,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await dio.post('/api/v1/auth/logout');
     } catch (_) {}
+    try { await FirebaseAuth.instance.signOut(); } catch (_) {}
+    try { await GoogleSignIn().signOut(); } catch (_) {}
     await prefs.clearAuth();
     state = const AuthState(initialized: true);
   }

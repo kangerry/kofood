@@ -8,7 +8,7 @@ import 'package:komera_mobile/core/location/location_provider.dart';
 final merchantsRadiusKmProvider = StateProvider<double>((ref) => 10);
 
 final koFoodRepositoryProvider = Provider<KoFoodRepository>((ref) {
-  final dio = ref.read(dioProvider);
+  final dio = ref.watch(dioProvider);
   return KoFoodRepositoryImpl(KoFoodRemoteDataSource(dio));
 });
 

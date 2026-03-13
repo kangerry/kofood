@@ -16,6 +16,7 @@ abstract class KoFoodRepository {
     required double destLat,
     required double destLng,
     required String destNote,
+    String? paymentSub,
   });
 }
 
@@ -57,6 +58,7 @@ class KoFoodRepositoryImpl implements KoFoodRepository {
     required double destLat,
     required double destLng,
     required String destNote,
+    String? paymentSub,
   }) {
     return remote.createOrder(
       merchantId: merchantId,
@@ -66,6 +68,7 @@ class KoFoodRepositoryImpl implements KoFoodRepository {
       destLat: destLat,
       destLng: destLng,
       destNote: destNote,
+      paymentSub: paymentSub,
     );
   }
 }

@@ -1,5 +1,6 @@
 param(
   [string]$DeviceId = "emulator-5554",
+  [string]$AvdName,
   [switch]$Wipe
 )
 $ErrorActionPreference = "Stop"
@@ -11,12 +12,38 @@ $gradleHome = "e:\komera\gradle_user_home"
 $apk = Join-Path $project "build\app\outputs\apk\debug\app-debug.apk"
 $package = "com.example.komera_mobile"
 $activity = "com.example.komera_mobile.MainActivity"
+# Force emulator user dirs to user profile to avoid E:\Android permission issues
+$env:ANDROID_SDK_HOME = "C:\Users\acer"
+$env:ANDROID_PREFS_ROOT = "C:\Users\acer\.android"
+$env:ANDROID_AVD_HOME = "C:\Users\acer\.android\avd"
+$env:ANDROID_EMULATOR_HOME = "C:\Users\acer\.android\emulator"
+if (-not (Test-Path $env:ANDROID_PREFS_ROOT)) { New-Item -ItemType Directory -Force -Path $env:ANDROID_PREFS_ROOT | Out-Null }
+if (-not (Test-Path $env:ANDROID_AVD_HOME)) { New-Item -ItemType Directory -Force -Path $env:ANDROID_AVD_HOME | Out-Null }
+if (-not (Test-Path $env:ANDROID_EMULATOR_HOME)) { New-Item -ItemType Directory -Force -Path $env:ANDROID_EMULATOR_HOME | Out-Null }
+# Clean up stale lock file in E:\Android if present
+$staleLock = "E:\Android\avd\emu-last-feature-flags.protobuf.lock"
+if (Test-Path $staleLock) {
+  try { Remove-Item -Force $staleLock -ErrorAction SilentlyContinue } catch {}
+}
 if (-not (Test-Path $gradleHome)) {
   New-Item -ItemType Directory -Force -Path $gradleHome | Out-Null
 }
 $env:GRADLE_USER_HOME = $gradleHome
+# Resolve AVD name: use provided, otherwise pick the first available
+if (-not $AvdName -or $AvdName.Trim() -eq "") {
+  $available = & $emulator -list-avds 2>$null
+  if ($available) {
+    if ($available -is [array]) {
+      $AvdName = $available[0].ToString().Trim()
+    } else {
+      $AvdName = $available.ToString().Split("`n")[0].Trim()
+    }
+  } else {
+    throw "No Android Virtual Device (AVD) found. Create one via avdmanager first."
+  }
+}
 # Launch emulator directly to avoid CLI issues
-$emuArgs = @("-avd","KOJEK_36","-no-snapshot","-no-snapshot-save","-no-snapshot-load","-gpu","swiftshader_indirect","-netdelay","none","-netspeed","full")
+$emuArgs = @("-avd",$AvdName,"-no-snapshot","-no-snapshot-save","-no-snapshot-load","-gpu","swiftshader_indirect","-netdelay","none","-netspeed","full")
 if ($Wipe) { $emuArgs += "-wipe-data" }
 Start-Process -FilePath $emulator -ArgumentList $emuArgs -WindowStyle Normal | Out-Null
 # Wait until any emulator is detected by ADB, then capture its serial

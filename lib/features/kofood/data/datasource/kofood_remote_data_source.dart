@@ -44,8 +44,9 @@ class KoFoodRemoteDataSource {
     required double destLat,
     required double destLng,
     required String destNote,
+    String? paymentSub,
   }) async {
-    final res = await dio.post('/api/v1/kofood/orders', data: {
+    final payload = {
       'merchant_id': int.tryParse(merchantId) ?? merchantId,
       'items': items,
       'payment': payment,
@@ -53,7 +54,9 @@ class KoFoodRemoteDataSource {
       'latitude_tujuan': destLat,
       'longitude_tujuan': destLng,
       'catatan_alamat': destNote,
-    });
+      if (paymentSub != null && paymentSub.isNotEmpty) 'payment_sub': paymentSub,
+    };
+    final res = await dio.post('/api/v1/kofood/orders', data: payload);
     return Map<String, dynamic>.from(res.data as Map);
   }
 }

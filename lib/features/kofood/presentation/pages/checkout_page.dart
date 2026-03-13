@@ -7,6 +7,7 @@ import '../../domain/usecases/get_merchants.dart';
 import '../../../../core/utils/format.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'map_selector_page.dart';
+import 'package:dio/dio.dart';
 
 class CheckoutPage extends ConsumerStatefulWidget {
   const CheckoutPage({super.key});
@@ -16,6 +17,7 @@ class CheckoutPage extends ConsumerStatefulWidget {
 
 class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   String _payment = 'cod';
+  String _vaBank = 'DOKU';
   LatLng? _dest;
   String _destText = '';
   final TextEditingController _noteCtrl = TextEditingController();
@@ -88,8 +90,32 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             const Text('Metode Pembayaran', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
             RadioListTile(value: 'cod', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('COD')),
             RadioListTile(value: 'dompet', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('Dompet')),
-            RadioListTile(value: 'pg_checkout', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('Gateway (DOKU Checkout)')),
+            // Non-SNAP only: hilangkan opsi Checkout (SNAP)
             RadioListTile(value: 'pg_va', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('Gateway (Virtual Account)')),
+            if (_payment == 'pg_va') Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+              child: DropdownButtonFormField<String>(
+                value: _vaBank,
+                decoration: const InputDecoration(
+                  labelText: 'Bank Virtual Account',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'BCA', child: Text('BCA')),
+                  DropdownMenuItem(value: 'BRI', child: Text('BRI')),
+                  DropdownMenuItem(value: 'MANDIRI', child: Text('Mandiri')),
+                  DropdownMenuItem(value: 'BSI', child: Text('BSI')),
+                  DropdownMenuItem(value: 'PERMATA', child: Text('Permata')),
+                  DropdownMenuItem(value: 'DANAMON', child: Text('Danamon')),
+                  DropdownMenuItem(value: 'CIMB', child: Text('CIMB')),
+                  DropdownMenuItem(value: 'DOKU', child: Text('DOKU VA (ALTO/ATM Bersama/Prima)')),
+                  DropdownMenuItem(value: 'BNI', child: Text('BNI')),
+                  DropdownMenuItem(value: 'BNC', child: Text('BNC')),
+                  DropdownMenuItem(value: 'BTN', child: Text('BTN')),
+                ],
+                onChanged: (v) => setState(() => _vaBank = v ?? 'DOKU'),
+              ),
+            ),
             RadioListTile(value: 'pg_qris', groupValue: _payment, onChanged: (v) => setState(() => _payment = v!), title: const Text('Gateway (QRIS)')),
           ],
         ),
@@ -110,6 +136,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                       }
                       try {
                         final merchantId = cart.items.first.product.merchantId;
+                        final sameMerchant = cart.items.every((e) => e.product.merchantId == merchantId);
+                        if (!sameMerchant) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Semua produk harus dari merchant yang sama')));
+                          return;
+                        }
                         final items = cart.items
                             .map((e) => {
                                   'product_id': int.tryParse(e.product.id) ?? e.product.id,
@@ -124,11 +155,12 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                           destLat: _dest!.latitude,
                           destLng: _dest!.longitude,
                           destNote: _noteCtrl.text.trim(),
+                          paymentSub: _payment == 'pg_va' ? _vaBank : null,
                         );
                         if (!mounted) return;
                         final id = res['id']?.toString() ?? '0';
                         final payUrl = (res['pay_url'] as String?)?.trim();
-                        if ((_payment == 'pg_checkout' || _payment == 'pg_va' || _payment == 'pg_qris') && payUrl != null && payUrl.isNotEmpty) {
+                        if ((_payment == 'pg_va' || _payment == 'pg_qris') && payUrl != null && payUrl.isNotEmpty) {
                           final uri = Uri.parse(payUrl);
                           try {
                             await launchUrl(uri, mode: LaunchMode.platformDefault);
@@ -141,7 +173,20 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                         context.go('/kofood/tracking/$id');
                       } catch (e) {
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuat pesanan: $e')));
+                        String msg = 'Gagal membuat pesanan';
+                        if (e is DioException) {
+                          final data = e.response?.data;
+                          if (data is Map) {
+                            final m = '${data['message'] ?? ''}'.trim();
+                            final d = '${data['detail'] ?? ''}'.trim();
+                            msg = [m, d].where((s) => s.isNotEmpty).join(' — ');
+                          } else {
+                            msg = e.message ?? msg;
+                          }
+                        } else {
+                          msg = e.toString();
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
                       }
                     },
               child: const Text('Buat Pesanan'),
