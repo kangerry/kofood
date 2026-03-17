@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/notification/notification_service.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 class OrderTrackingPage extends StatefulWidget {
   final String orderId;
@@ -202,7 +203,19 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Lacak Pesanan')),
+      appBar: AppBar(
+        title: const Text('Lacak Pesanan'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              // ignore: use_build_context_synchronously
+              try { (context as dynamic).go('/kofood/chat/${widget.orderId}'); } catch (_) { Navigator.of(context).pushNamed('/kofood/chat/${widget.orderId}'); }
+            },
+            icon: const Icon(Icons.chat_bubble_outline),
+            tooltip: 'Chat',
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           GoogleMap(

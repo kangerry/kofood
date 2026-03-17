@@ -4,6 +4,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../providers/orders_provider.dart';
 import '../../../core/network/dio_client.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 class OrdersPage extends ConsumerWidget {
   const OrdersPage({super.key});
@@ -44,20 +45,43 @@ class OrdersPage extends ConsumerWidget {
                     children: [
                       Text(fmt.format(total)),
                       const SizedBox(height: 6),
-                      if (isBaru)
-                        FilledButton.tonal(
-                          onPressed: () async {
-                            try {
-                              final dio = ref.read(dioProvider);
-                              await dio.post('/api/v1/seller/orders/${it['id']}/process');
-                              ref.invalidate(sellerOrdersProvider);
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pesanan diterima')));
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memproses: $e')));
-                            }
-                          },
-                          child: const Text('Terima'),
-                        ),
+                      TextButton.icon(
+                        onPressed: () { context.go('/kofood/chat/${it['id']}'); },
+                        icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                        label: const Text('Chat'),
+                      ),
+                      if (isBaru) Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton(
+                            onPressed: () async {
+                              try {
+                                final dio = ref.read(dioProvider);
+                                await dio.post('/api/v1/seller/orders/${it['id']}/reject');
+                                ref.invalidate(sellerOrdersProvider);
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pesanan ditolak')));
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menolak: $e')));
+                              }
+                            },
+                            child: const Text('Tolak'),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.tonal(
+                            onPressed: () async {
+                              try {
+                                final dio = ref.read(dioProvider);
+                                await dio.post('/api/v1/seller/orders/${it['id']}/process');
+                                ref.invalidate(sellerOrdersProvider);
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pesanan diterima')));
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memproses: $e')));
+                              }
+                            },
+                            child: const Text('Terima'),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 );

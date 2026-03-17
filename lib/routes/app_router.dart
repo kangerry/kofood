@@ -10,6 +10,7 @@ import '../features/kofood/presentation/pages/product_detail_page.dart';
 import '../features/kofood/presentation/pages/cart_page.dart';
 import '../features/kofood/presentation/pages/checkout_page.dart';
 import '../features/kofood/presentation/pages/order_tracking_page.dart';
+import '../features/kofood/presentation/pages/order_chat_page.dart';
 import '../features/kofood/presentation/pages/order_history_page.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/settings/presentation/settings_page.dart';
@@ -81,6 +82,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'tracking/:orderId',
                 builder: (ctx, st) => OrderTrackingPage(orderId: st.pathParameters['orderId']!),
+              ),
+              GoRoute(
+                path: 'chat/:orderId',
+                builder: (ctx, st) => OrderChatPage(orderId: st.pathParameters['orderId']!),
               ),
               GoRoute(
                 path: 'history',
