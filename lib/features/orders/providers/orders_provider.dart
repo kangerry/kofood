@@ -8,10 +8,3 @@ final myOrdersProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async 
   final data = (resp.data['data'] as List).cast<Map<String, dynamic>>();
   return data;
 });
-
-final sellerOrdersProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final dio = ref.read(dioProvider);
-  final Response resp = await dio.get('/api/v1/seller/orders');
-  final data = (resp.data['data'] as List).cast<Map<String, dynamic>>();
-  return data;
-});

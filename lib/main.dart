@@ -21,11 +21,6 @@ Future<void> main() async {
   final url = p.getString('base_url');
   if (url != null && url.isNotEmpty) {
     RuntimeConfig.baseUrl = url;
-  } else if (kIsWeb) {
-    final host = Uri.base.host;
-    final origin = Uri.base.origin;
-    final isLocal = host == 'localhost' || host == '127.0.0.1';
-    RuntimeConfig.baseUrl = isLocal ? 'http://localhost:8000' : origin;
   }
   final webClientId = p.getString('google_web_client_id');
   if (webClientId != null && webClientId.isNotEmpty) {
@@ -66,7 +61,7 @@ Future<void> main() async {
       OneSignal.Notifications.addClickListener((event) {
         final data = Map<String, dynamic>.from(event.notification.additionalData ?? {});
         final type = '${data['type'] ?? ''}';
-        if (type == 'kofood_driver_accepted' || type == 'kofood_order_new') {
+        if (type == 'kofood_driver_accepted') {
           final id = data['order_id'] ?? data['orderId'] ?? data['orderID'];
           if (id != null && id.toString().isNotEmpty) {
             final ctx = rootNavigatorKey.currentContext;
@@ -84,7 +79,7 @@ Future<void> main() async {
     }
   } catch (_) {}
   try {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       final n = message.notification;
       final data = message.data;
       final type = data['type'] ?? '';
@@ -95,7 +90,7 @@ Future<void> main() async {
             ? n!.body!
             : (orderNumber.isNotEmpty ? 'Pesanan $orderNumber diterima driver' : 'Pesanan diterima driver');
         if (ctx != null) {
-          showDialog<void>(
+          await showDialog<void>(
             context: ctx,
             builder: (dctx) => AlertDialog(
               title: Text(n?.title ?? 'Driver Menerima Pesanan'),
@@ -103,7 +98,7 @@ Future<void> main() async {
               actions: [
                 TextButton(onPressed: () => Navigator.of(dctx).pop(), child: const Text('Tutup')),
                 TextButton(
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.of(dctx).pop();
                     final id = data['order_id'] ?? data['orderId'] ?? '';
                     if (id.toString().isNotEmpty) {
@@ -119,159 +114,6 @@ Future<void> main() async {
           );
         } else if (n != null) {
           NotificationService.show(n.title ?? 'Driver Menerima Pesanan', body);
-        }
-      } else if (type == 'kofood_order_new') {
-        final ctx = rootNavigatorKey.currentContext;
-        final orderId = '${data['order_id'] ?? data['orderId'] ?? data['orderID'] ?? ''}';
-        final title = n?.title ?? 'Pesanan Baru';
-        Future<void> showDialogWithDetail(String content, {Widget? contentWidget}) async {
-          if (ctx == null) {
-            if (n != null) NotificationService.show(n.title ?? 'Pesanan Baru', n.body ?? 'Ada pesanan baru');
-            return;
-          }
-          await showDialog<void>(
-            context: ctx,
-            barrierDismissible: false,
-            builder: (dctx) => AlertDialog(
-              title: Text(title),
-              content: SingleChildScrollView(child: contentWidget ?? Text(content)),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    Navigator.of(dctx).pop();
-                    try {
-                      final p = await SharedPreferences.getInstance();
-                      final kopId = p.getString('koperasi_id') ?? '1';
-                      final token = p.getString('token');
-                      final dio = Dio(BaseOptions(
-                        baseUrl: RuntimeConfig.baseUrl,
-                        headers: {
-                          'Accept': 'application/json',
-                          'X-Koperasi-Id': kopId,
-                          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-                        },
-                        connectTimeout: const Duration(seconds: 20),
-                        receiveTimeout: const Duration(seconds: 20),
-                      ));
-                      await dio.post('/api/v1/seller/orders/$orderId/reject');
-                      NotificationService.show('Pesanan ditolak', 'Pesanan $orderId telah ditolak');
-                      try { GoRouter.of(rootNavigatorKey.currentContext!).go('/orders'); } catch (_) {}
-                    } catch (e) {
-                      NotificationService.show('Gagal Menolak', '$e');
-                    }
-                  },
-                  child: const Text('Tolak'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    Navigator.of(dctx).pop();
-                    try {
-                      final p = await SharedPreferences.getInstance();
-                      final kopId = p.getString('koperasi_id') ?? '1';
-                      final token = p.getString('token');
-                      final dio = Dio(BaseOptions(
-                        baseUrl: RuntimeConfig.baseUrl,
-                        headers: {
-                          'Accept': 'application/json',
-                          'X-Koperasi-Id': kopId,
-                          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-                        },
-                        connectTimeout: const Duration(seconds: 20),
-                        receiveTimeout: const Duration(seconds: 20),
-                      ));
-                      await dio.post('/api/v1/seller/orders/$orderId/process');
-                      NotificationService.show('Pesanan diterima', 'Pesanan $orderId diproses');
-                      try { GoRouter.of(rootNavigatorKey.currentContext!).go('/orders'); } catch (_) {}
-                    } catch (e) {
-                      NotificationService.show('Gagal Memproses', '$e');
-                    }
-                  },
-                  child: const Text('Terima'),
-                ),
-              ],
-            ),
-          );
-        }
-        if (orderId.isEmpty) {
-          final body = n?.body ?? 'Ada pesanan baru';
-          await showDialogWithDetail(body);
-        } else {
-          try {
-            final p = await SharedPreferences.getInstance();
-            final kopId = p.getString('koperasi_id') ?? '1';
-            final token = p.getString('token');
-            final dio = Dio(BaseOptions(
-              baseUrl: RuntimeConfig.baseUrl,
-              headers: {
-                'Accept': 'application/json',
-                'X-Koperasi-Id': kopId,
-                if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-              },
-              connectTimeout: const Duration(seconds: 20),
-              receiveTimeout: const Duration(seconds: 20),
-            ));
-            final res = await dio.get('/api/v1/seller/orders/$orderId');
-            final d = Map<String, dynamic>.from(res.data?['data'] ?? {});
-            final number = '${d['number'] ?? ''}';
-            final total = (d['total'] ?? 0).toString();
-            final dest = Map<String, dynamic>.from(d['destination'] ?? {});
-            final address = '${dest['address'] ?? ''}';
-            final items = List<Map<String, dynamic>>.from(d['items'] ?? const []);
-            final header = Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('No: $number', style: const TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text('Total: Rp$total'),
-                  const SizedBox(height: 4),
-                  Text('Alamat: $address'),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-                ],
-              ),
-            );
-            final list = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                header,
-                ...List.generate(items.length.clamp(0, 5), (i) {
-                  final it = items[i];
-                  final qty = it['qty'] ?? 0;
-                  final name = it['name'] ?? '';
-                  final sub = (it['subtotal'] ?? 0).toString();
-                  final img = '${it['imageUrl'] ?? ''}';
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (img.isNotEmpty)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: Image.network(img, width: 52, height: 52, fit: BoxFit.cover),
-                          )
-                        else
-                          Container(width: 52, height: 52, alignment: Alignment.center, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(6)), child: const Icon(Icons.image_not_supported, size: 20)),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text('$qty x $name\nRp$sub')),
-                      ],
-                    ),
-                  );
-                }),
-                if (items.length > 5)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text('… dan ${items.length - 5} item lainnya'),
-                  ),
-              ],
-            );
-            await showDialogWithDetail('', contentWidget: list);
-          } catch (_) {
-            final body = n?.body ?? (data['number'] != null ? 'Pesanan ${data['number']}' : 'Ada pesanan baru');
-            await showDialogWithDetail(body);
-          }
         }
       } else if (n != null) {
         NotificationService.show(n.title ?? 'Notifikasi', n.body ?? '');
@@ -312,6 +154,8 @@ Future<void> main() async {
       final dio = Dio(BaseOptions(baseUrl: RuntimeConfig.baseUrl, headers: {
         'Accept': 'application/json',
         'X-Koperasi-Id': kopId,
+        'ngrok-skip-browser-warning': 'true',
+        'User-Agent': 'KOMERA-App',
       }));
       final res = await dio.get('/api/v1/public-config');
       final data = Map<String, dynamic>.from(res.data ?? {});

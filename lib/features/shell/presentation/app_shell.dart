@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../features/kofood/presentation/controllers/cart_provider.dart';
 import '../../home/presentation/home_page.dart';
 import '../../search/presentation/search_page.dart';
 import '../../orders/presentation/orders_page.dart';
 import '../../wallet/presentation/wallet_page.dart';
 import '../../profile/presentation/profile_page.dart';
-import '../../seller/presentation/seller_dashboard_page.dart';
-import '../../seller/presentation/seller_center_page.dart';
 import 'package:go_router/go_router.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -22,9 +21,8 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authStateProvider);
     final isAnggota = auth.role == UserRole.anggota;
-    final isMerchant = auth.role == UserRole.merchant;
     List<Widget> pages;
-    List<BottomNavigationBarItem> items;
+    List<NavigationDestination> items;
     if (isAnggota) {
       pages = const [
         HomePage(),
@@ -34,24 +32,11 @@ class _AppShellState extends ConsumerState<AppShell> {
         ProfilePage(),
       ];
       items = const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.search_outlined), label: 'Search'),
-        BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), label: 'Orders'),
-        BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Wallet'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
-      ];
-    } else if (isMerchant) {
-      pages = const [
-        SellerDashboardPage(),
-        OrdersPage(),
-        SellerCenterPage(),
-        ProfilePage(),
-      ];
-      items = const [
-        BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
-        BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), label: 'Orders'),
-        BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), label: 'Seller'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+        NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Search'),
+        NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+        NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
+        NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
       ];
     } else {
       pages = const [
@@ -61,20 +46,19 @@ class _AppShellState extends ConsumerState<AppShell> {
         ProfilePage(),
       ];
       items = const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.search_outlined), label: 'Search'),
-        BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), label: 'Orders'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+        NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Search'),
+        NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+        NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
       ];
     }
     final currentIndex = _index >= pages.length ? pages.length - 1 : _index;
     return Scaffold(
       body: SafeArea(child: pages[currentIndex]),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (i) => setState(() => _index = i >= items.length ? items.length - 1 : i),
-        type: BottomNavigationBarType.fixed,
-        items: items,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentIndex,
+        onDestinationSelected: (i) => setState(() => _index = i >= items.length ? items.length - 1 : i),
+        destinations: items,
       ),
     );
   }
@@ -88,30 +72,50 @@ class ShellScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authStateProvider);
     final isAnggota = auth.role == UserRole.anggota;
-    final isMerchant = auth.role == UserRole.merchant;
+    final cart = ref.watch(cartProvider);
+    final cartCount = cart.items.fold<int>(0, (p, e) => p + e.quantity);
     late final List<_TabItem> tabs;
     if (isAnggota) {
       tabs = [
-        _TabItem('/kofood', const Icon(Icons.home_outlined), 'Home'),
-        _TabItem('/search', const Icon(Icons.search_outlined), 'Search'),
-        _TabItem('/orders', const Icon(Icons.receipt_long_outlined), 'Orders'),
-        _TabItem('/wallet', const Icon(Icons.account_balance_wallet_outlined), 'Wallet'),
-        _TabItem('/profile', const Icon(Icons.person_outline), 'Profile'),
-      ];
-    } else if (isMerchant) {
-      tabs = [
-        _TabItem('/kofood', const Icon(Icons.home_outlined), 'Home'),
-        _TabItem('/search', const Icon(Icons.search_outlined), 'Search'),
-        _TabItem('/orders', const Icon(Icons.receipt_long_outlined), 'Orders'),
-        _TabItem('/seller/center', const Icon(Icons.storefront_outlined), 'Seller'),
-        _TabItem('/profile', const Icon(Icons.person_outline), 'Profile'),
+        _TabItem(
+          '/home',
+          const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+        ),
+        _TabItem(
+          '/search',
+          const NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Search'),
+        ),
+        _TabItem(
+          '/orders',
+          const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+        ),
+        _TabItem(
+          '/wallet',
+          const NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
+        ),
+        _TabItem(
+          '/profile',
+          const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+        ),
       ];
     } else {
       tabs = [
-        _TabItem('/kofood', const Icon(Icons.home_outlined), 'Home'),
-        _TabItem('/search', const Icon(Icons.search_outlined), 'Search'),
-        _TabItem('/orders', const Icon(Icons.receipt_long_outlined), 'Orders'),
-        _TabItem('/profile', const Icon(Icons.person_outline), 'Profile'),
+        _TabItem(
+          '/home',
+          const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+        ),
+        _TabItem(
+          '/search',
+          const NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Search'),
+        ),
+        _TabItem(
+          '/orders',
+          const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+        ),
+        _TabItem(
+          '/profile',
+          const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+        ),
       ];
     }
     int current = 0;
@@ -122,17 +126,29 @@ class ShellScaffold extends ConsumerWidget {
       }
     }
     return Scaffold(
-      body: SafeArea(child: child),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: current,
-        type: BottomNavigationBarType.fixed,
-        onTap: (i) {
-          final p = tabs[i].path;
-          context.go(p);
-        },
-        items: [
-          for (final t in tabs) BottomNavigationBarItem(icon: t.icon, label: t.label),
-        ],
+      body: SafeArea(
+        child: Stack(
+          children: [
+            child,
+            if (isAnggota)
+              Positioned(
+                top: 8,
+                right: 10,
+                child: _CartOverlayButton(
+                  count: cartCount,
+                  onTap: () {
+                    if (location.startsWith('/kofood/cart')) return;
+                    context.go('/kofood/cart');
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: current,
+        onDestinationSelected: (i) => context.go(tabs[i].path),
+        destinations: [for (final t in tabs) t.destination],
       ),
     );
   }
@@ -140,7 +156,60 @@ class ShellScaffold extends ConsumerWidget {
 
 class _TabItem {
   final String path;
-  final Icon icon;
-  final String label;
-  _TabItem(this.path, this.icon, this.label);
+  final NavigationDestination destination;
+  _TabItem(this.path, this.destination);
+}
+
+class _CartOverlayButton extends StatelessWidget {
+  final int count;
+  final VoidCallback onTap;
+  const _CartOverlayButton({required this.count, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Ink(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.92),
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x22000000),
+                blurRadius: 12,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(Icons.shopping_bag_outlined, size: 22),
+              if (count > 0)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      count > 99 ? '99+' : '$count',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 10),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

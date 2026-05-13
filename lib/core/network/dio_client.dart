@@ -9,7 +9,11 @@ final dioProvider = Provider<Dio>((ref) {
     baseUrl: RuntimeConfig.baseUrl,
     connectTimeout: const Duration(seconds: 20),
     receiveTimeout: const Duration(seconds: 20),
-    headers: {'Accept': 'application/json'},
+    headers: {
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+      'User-Agent': 'KOMERA-Web',
+    },
   ));
   dio.interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) async {
@@ -19,6 +23,8 @@ final dioProvider = Provider<Dio>((ref) {
         options.headers['Authorization'] = 'Bearer $token';
       }
       options.headers['X-Koperasi-Id'] = koperasiId;
+      options.headers['ngrok-skip-browser-warning'] = 'true';
+      options.headers['User-Agent'] = options.headers['User-Agent'] ?? 'KOMERA-Web';
       handler.next(options);
     },
     onError: (e, handler) async {

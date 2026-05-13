@@ -18,10 +18,15 @@ import '../features/home/presentation/home_page.dart';
 import '../features/search/presentation/search_page.dart';
 import '../features/orders/presentation/orders_page.dart';
 import '../features/wallet/presentation/wallet_page.dart';
+import '../features/wallet/presentation/withdraw_page.dart';
+import '../features/wallet/presentation/bank_accounts_page.dart';
 import '../features/profile/presentation/profile_page.dart';
-import '../features/seller/presentation/seller_dashboard_page.dart';
+import '../features/ojek/presentation/ojek_request_page.dart';
+import '../features/ojek/presentation/ojek_tracking_page.dart';
 import '../features/seller/presentation/seller_center_page.dart';
 import '../features/seller/presentation/product_edit_page.dart';
+import '../features/seller/presentation/settlement_settings_page.dart';
+import '../features/seller/presentation/option_groups_page.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -31,14 +36,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final role = auth.role;
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: loggedIn ? '/kofood' : '/login',
+    initialLocation: loggedIn ? '/home' : '/login',
     redirect: (ctx, st) {
       final p = st.uri.path;
       final loggingIn = p == '/login' || p == '/register';
       if (!loggedIn && !loggingIn) return '/login';
-      if (loggedIn && loggingIn) return '/kofood';
+      if (loggedIn && loggingIn) return '/home';
       if (p.startsWith('/wallet') && role != UserRole.anggota) return '/kofood';
-      // Seller routes diizinkan untuk anggota yang sudah login juga.
+      if (p.startsWith('/seller') && role != UserRole.merchant) return '/home';
       return null;
     },
     routes: [
@@ -52,12 +57,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/search', builder: (ctx, st) => const SearchPage()),
           GoRoute(path: '/orders', builder: (ctx, st) => const OrdersPage()),
           GoRoute(path: '/wallet', builder: (ctx, st) => const WalletPage()),
+          GoRoute(path: '/wallet/withdraw', builder: (ctx, st) => const WithdrawPage()),
+          GoRoute(path: '/wallet/banks', builder: (ctx, st) => const BankAccountsPage()),
           GoRoute(path: '/profile', builder: (ctx, st) => const ProfilePage()),
-          GoRoute(path: '/seller', builder: (ctx, st) => const SellerDashboardPage()),
-          GoRoute(path: '/seller/center', builder: (ctx, st) => const SellerCenterPage()),
           GoRoute(
-            path: '/seller/product/:id/edit',
-            builder: (ctx, st) => ProductEditPage(productId: st.pathParameters['id']!),
+            path: '/seller',
+            builder: (ctx, st) => const SellerCenterPage(),
+            routes: [
+              GoRoute(path: 'settlement', builder: (ctx, st) => const SettlementSettingsPage()),
+              GoRoute(path: 'options', builder: (ctx, st) => const OptionGroupsPage()),
+              GoRoute(
+                path: 'product/:id/edit',
+                builder: (ctx, st) => ProductEditPage(productId: st.pathParameters['id']!),
+              ),
+            ],
           ),
           GoRoute(
             path: '/kofood',
@@ -93,6 +106,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          GoRoute(path: '/ojek', builder: (ctx, st) => const OjekRequestPage(service: 'ride')),
+          GoRoute(path: '/kirim', builder: (ctx, st) => const OjekRequestPage(service: 'delivery')),
+          GoRoute(path: '/ojek/tracking/:id', builder: (ctx, st) => OjekTrackingPage(orderId: st.pathParameters['id']!)),
         ],
       ),
     ],

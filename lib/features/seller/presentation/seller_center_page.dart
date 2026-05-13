@@ -22,6 +22,16 @@ class SellerCenterPage extends StatelessWidget {
               },
             ),
             IconButton(
+              tooltip: 'Opsi Produk',
+              icon: const Icon(Icons.tune),
+              onPressed: () => context.go('/seller/options'),
+            ),
+            IconButton(
+              tooltip: 'Pencairan',
+              icon: const Icon(Icons.account_balance_outlined),
+              onPressed: () => context.go('/seller/settlement'),
+            ),
+            IconButton(
               tooltip: 'Marketplace',
               icon: const Icon(Icons.storefront_outlined),
               onPressed: () => context.go('/kofood'),

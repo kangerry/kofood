@@ -40,7 +40,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final token = await prefs.getToken();
     final roleStr = await prefs.getRole();
     final userId = await prefs.getUserId();
-    final role = roleStr == 'merchant' ? UserRole.merchant : roleStr == 'anggota' ? UserRole.anggota : null;
+    final role = roleStr == 'merchant'
+        ? UserRole.merchant
+        : (roleStr == 'anggota' ? UserRole.anggota : null);
     state = state.copyWith(token: token, role: role, userId: userId, initialized: true);
   }
 
@@ -52,9 +54,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     });
     final data = res.data as Map<String, dynamic>;
     final token = data['token'] as String;
-    final roleStr = data['role'] as String;
     final userId = (data['user']?['id'] ?? '').toString();
     final koperasiId = (data['koperasi_id'] ?? '').toString();
+    final roleStr = (data['role'] ?? '').toString();
     final role = roleStr == 'merchant' ? UserRole.merchant : UserRole.anggota;
     await prefs.saveAuth(token: token, role: role.name, userId: userId);
     if (koperasiId.isNotEmpty) {
@@ -90,31 +92,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (idToken == null || idToken.isEmpty) {
         throw Exception('Token kosong');
       }
-      Response<dynamic> res;
-      try {
-        res = await dio.post('/api/auth/google', data: {'id_token': idToken});
-      } on DioException catch (e) {
-        final status = e.response?.statusCode ?? 0;
-        if (status == 404 || status == 405) {
-          final gUid = user?.providerData.firstWhere(
-                (p) => p.providerId == 'google.com',
-                orElse: () => user!.providerData.isNotEmpty ? user!.providerData.first : user!.providerData.firstWhere((_) => true),
-              ).uid;
-          final payload = {
-            'google_id': gUid ?? user?.uid ?? '',
-            'email': user?.email ?? '',
-            'name': user?.displayName ?? 'User Google',
-          };
-          res = await dio.post('/api/v1/auth/login-google', data: payload);
-        } else {
-          rethrow;
-        }
-      }
+      final gUid = user?.providerData.firstWhere(
+            (p) => p.providerId == 'google.com',
+            orElse: () => user!.providerData.isNotEmpty ? user!.providerData.first : user!.providerData.firstWhere((_) => true),
+          ).uid;
+      final payload = {
+        'google_id': gUid ?? user?.uid ?? '',
+        'email': user?.email ?? '',
+        'name': user?.displayName ?? 'User Google',
+        'id_token': idToken,
+      };
+      final Response<dynamic> res = await dio.post('/api/v1/auth/login-google', data: payload);
       final data = Map<String, dynamic>.from(res.data ?? {});
       final token = '${data['token'] ?? ''}';
-      final roleStr = '${data['role'] ?? 'anggota'}';
       final userId = (data['user']?['id'] ?? data['user_id'] ?? '').toString();
       final koperasiId = (data['koperasi_id'] ?? '').toString();
+      final roleStr = (data['role'] ?? '').toString();
       final role = roleStr == 'merchant' ? UserRole.merchant : UserRole.anggota;
       if (token.isEmpty) {
         throw Exception('Token tidak valid');
@@ -138,9 +131,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     });
     final data = res.data as Map<String, dynamic>;
     final token = data['token'] as String;
-    final roleStr = data['role'] as String;
     final userId = (data['user']?['id'] ?? '').toString();
     final koperasiId = (data['koperasi_id'] ?? '').toString();
+    final roleStr = (data['role'] ?? '').toString();
     final role = roleStr == 'merchant' ? UserRole.merchant : UserRole.anggota;
     await prefs.saveAuth(token: token, role: role.name, userId: userId);
     if (koperasiId.isNotEmpty) {
@@ -169,9 +162,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     });
     final data = res.data as Map<String, dynamic>;
     final token = data['token'] as String;
-    final roleStr = data['role'] as String;
     final userId = (data['user']?['id'] ?? '').toString();
     final koperasiId = (data['koperasi_id'] ?? '').toString();
+    final roleStr = (data['role'] ?? '').toString();
     final role = roleStr == 'merchant' ? UserRole.merchant : UserRole.anggota;
     await prefs.saveAuth(token: token, role: role.name, userId: userId);
     if (koperasiId.isNotEmpty) {
@@ -203,15 +196,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final res = await dio.post('/api/v1/auth/switch-to-merchant');
     final data = res.data as Map<String, dynamic>;
     final token = data['token'] as String;
-    final roleStr = data['role'] as String;
     final userId = (data['user']?['id'] ?? '').toString();
     final koperasiId = (data['koperasi_id'] ?? '').toString();
+    final roleStr = (data['role'] ?? '').toString();
     final role = roleStr == 'merchant' ? UserRole.merchant : UserRole.anggota;
     await prefs.saveAuth(token: token, role: role.name, userId: userId);
     if (koperasiId.isNotEmpty) {
       await prefs.setKoperasiId(koperasiId);
     }
     state = state.copyWith(token: token, role: role, userId: userId);
+    await _tryRegisterDeviceToken();
   }
   Future<void> logout() async {
     try {

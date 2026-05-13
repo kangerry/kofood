@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../config/runtime.dart';
 
-final baseUrlProvider = Provider<String>((ref) => 'http://127.0.0.1:8000/api/v1');
+final baseUrlProvider = Provider<String>((ref) => '${RuntimeConfig.baseUrl.trimRight()}/api/v1');
 
 final apiClientProvider = Provider<Dio>((ref) {
   final dio = Dio(BaseOptions(baseUrl: ref.read(baseUrlProvider), connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 20)));

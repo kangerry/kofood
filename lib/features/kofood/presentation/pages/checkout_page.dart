@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../controllers/cart_provider.dart';
 import '../../domain/usecases/get_merchants.dart';
 import '../../../../core/utils/format.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'map_selector_page.dart';
 import 'package:dio/dio.dart';
 
@@ -18,7 +18,7 @@ class CheckoutPage extends ConsumerStatefulWidget {
 class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   String _payment = 'cod';
   String _vaBank = 'DOKU';
-  LatLng? _dest;
+  ll.LatLng? _dest;
   String _destText = '';
   final TextEditingController _noteCtrl = TextEditingController();
   @override
@@ -63,7 +63,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                 subtitle: _dest != null ? Text('Lat: ${_dest!.latitude.toStringAsFixed(6)}, Lng: ${_dest!.longitude.toStringAsFixed(6)}') : null,
                 trailing: TextButton.icon(
                   onPressed: () async {
-                    final picked = await Navigator.of(context).push<LatLng>(MaterialPageRoute(builder: (_) => MapSelectorPage(initial: _dest)));
+                    final picked = await Navigator.of(context).push<ll.LatLng>(MaterialPageRoute(builder: (_) => MapSelectorPage(initial: _dest)));
                     if (picked != null && mounted) {
                       setState(() {
                         _dest = picked;
@@ -141,12 +141,26 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Semua produk harus dari merchant yang sama')));
                           return;
                         }
-                        final items = cart.items
-                            .map((e) => {
-                                  'product_id': int.tryParse(e.product.id) ?? e.product.id,
-                                  'qty': e.quantity,
-                                })
-                            .toList();
+                        final items = cart.items.map((e) {
+                          final byGroup = <String, List<String>>{};
+                          for (final o in e.options) {
+                            final key = o.groupId;
+                            byGroup.putIfAbsent(key, () => <String>[]);
+                            byGroup[key]!.add(o.itemId);
+                          }
+                          final groups = byGroup.entries
+                              .map((en) => {
+                                    'group_id': int.tryParse(en.key) ?? en.key,
+                                    'item_ids': en.value.map((x) => int.tryParse(x) ?? x).toList(),
+                                  })
+                              .toList();
+                          return {
+                            'product_id': int.tryParse(e.product.id) ?? e.product.id,
+                            'qty': e.quantity,
+                            if (e.note.trim().isNotEmpty) 'note': e.note.trim(),
+                            if (groups.isNotEmpty) 'options': groups,
+                          };
+                        }).toList();
                         final res = await repo.createOrder(
                           merchantId: merchantId,
                           items: items,

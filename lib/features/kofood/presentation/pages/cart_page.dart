@@ -16,15 +16,34 @@ class CartPage extends ConsumerWidget {
         itemCount: cart.items.length,
         itemBuilder: (ctx, i) {
           final it = cart.items[i];
+          final optsText = it.options.isEmpty
+              ? null
+              : it.options
+                  .map((e) => e.groupName.isNotEmpty ? '${e.groupName}: ${e.itemName}' : e.itemName)
+                  .where((s) => s.trim().isNotEmpty)
+                  .join(', ');
           return Card(
             child: ListTile(
               title: Text(it.product.name),
-              subtitle: Text('${formatRupiah(it.product.price)} x ${it.quantity}'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${formatRupiah(it.unitPrice)} x ${it.quantity}'),
+                  if (optsText != null && optsText.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(optsText, style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+                  ],
+                  if (it.note.trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text('Catatan: ${it.note}', style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+                  ],
+                ],
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(onPressed: () => ref.read(cartProvider.notifier).decrease(it.product.id), icon: const Icon(Icons.remove)),
-                  IconButton(onPressed: () => ref.read(cartProvider.notifier).add(it.product), icon: const Icon(Icons.add)),
+                  IconButton(onPressed: () => ref.read(cartProvider.notifier).decrease(it.lineId), icon: const Icon(Icons.remove)),
+                  IconButton(onPressed: () => ref.read(cartProvider.notifier).increase(it.lineId), icon: const Icon(Icons.add)),
                 ],
               ),
             ),

@@ -20,3 +20,10 @@ final walletTransactionsProvider = FutureProvider<List<Map<String, dynamic>>>((r
   }
   return <Map<String, dynamic>>[];
 });
+
+final bankAccountsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final dio = ref.read(dioProvider);
+  final res = await dio.get('/api/v1/wallet/bank-accounts');
+  final items = (res.data is Map && (res.data['items'] is List)) ? (res.data['items'] as List) : const [];
+  return items.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+});

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/profile_provider.dart';
 import '../../../core/network/dio_client.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import '../../common/widgets/map_picker_page.dart';
 
 class ProfileEditPage extends ConsumerStatefulWidget {
@@ -22,7 +22,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
   final _password = TextEditingController();
   bool _loading = false;
   String? _error;
-  LatLng? _selectedLatLng;
+  ll.LatLng? _selectedLatLng;
 
   @override
   void didChangeDependencies() {
@@ -42,9 +42,9 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
       _deskripsi.text = '${u['deskripsi'] ?? ''}';
       final lat = u['latitude'];
       final lng = u['longitude'];
-      if (lat is num && lng is num) {
-        _selectedLatLng = LatLng(lat.toDouble(), lng.toDouble());
-      }
+        if (lat is num && lng is num) {
+          _selectedLatLng = ll.LatLng(lat.toDouble(), lng.toDouble());
+        }
     }
   }
 
@@ -144,7 +144,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                                 onPressed: _loading
                                     ? null
                                     : () async {
-                                        final res = await Navigator.of(context).push<LatLng>(
+                                        final res = await Navigator.of(context).push<ll.LatLng>(
                                           MaterialPageRoute(
                                             builder: (_) => MapPickerPage(initial: _selectedLatLng),
                                           ),

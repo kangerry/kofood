@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/format.dart';
 import '../providers/wallet_provider.dart';
 import 'topup_va_sheet.dart';
+import 'withdraw_page.dart';
 
 class WalletPage extends ConsumerWidget {
   const WalletPage({super.key});
@@ -57,7 +58,7 @@ class WalletPage extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: OutlinedButton(onPressed: () {}, child: const Text('Bayar'))),
+                Expanded(child: OutlinedButton(onPressed: () { Navigator.of(context).push(MaterialPageRoute(builder: (_) => WithdrawPage())); }, child: const Text('Tarik Dana'))),
               ],
             ),
             const SizedBox(height: 16),

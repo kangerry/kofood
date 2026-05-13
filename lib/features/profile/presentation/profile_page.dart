@@ -6,9 +6,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../providers/profile_provider.dart';
 import 'profile_edit_page.dart';
-import '../../auth/presentation/register_merchant_page.dart';
 import '../../auth/presentation/register_page.dart';
-import '../../seller/presentation/seller_shop_edit_page.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -32,7 +30,7 @@ class ProfilePage extends ConsumerWidget {
           ],
         ),
         data: (data) {
-          final roleText = '${data['role'] ?? (auth.role == UserRole.merchant ? 'merchant' : 'anggota')}'.toLowerCase() == 'merchant' ? 'Merchant' : 'Anggota';
+          const roleText = 'Anggota';
           final user = Map<String, dynamic>.from(data['user'] ?? {});
           final nama = user['nama_anggota'] ?? user['nama_toko'] ?? user['name'] ?? '-';
           final email = user['email'] ?? '-';
@@ -51,105 +49,7 @@ class ProfilePage extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Center(child: Text('Status: ${user['status'] ?? '-'}')),
                 ),
-              if (roleText.toLowerCase() == 'anggota' && (data['seller'] != null))
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Center(
-                    child: Text(
-                      'Seller: ${data['seller']?['status'] ?? '-'}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
               const SizedBox(height: 16),
-              if (auth.role == UserRole.anggota)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text('Ingin mulai berjualan?', style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        Builder(builder: (ctx) {
-                          final seller = data['seller'];
-                          final disabled = seller != null;
-                          return OutlinedButton(
-                            onPressed: disabled
-                                ? null
-                                : () async {
-                                    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterMerchantPage(applyForAnggota: true)));
-                                    ref.invalidate(profileProvider);
-                                  },
-                            child: Text(disabled ? 'Seller sudah terdaftar' : 'Ajukan Seller'),
-                          );
-                        }),
-                        const SizedBox(height: 8),
-                        Builder(builder: (ctx) {
-                          final seller = data['seller'];
-                          final aktif = seller != null && '${seller['status'] ?? ''}'.toLowerCase() == 'aktif';
-                          return FilledButton.tonal(
-                            onPressed: aktif
-                                ? () {
-                                    context.go('/seller');
-                                  }
-                                : null,
-                            child: const Text('Masuk Seller Center'),
-                          );
-                        }),
-                        const SizedBox(height: 8),
-                        Builder(builder: (ctx) {
-                          final seller = data['seller'];
-                          final hasSeller = seller != null;
-                          return OutlinedButton.icon(
-                            onPressed: hasSeller
-                                ? () async {
-                                    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SellerShopEditPage()));
-                                  }
-                                : null,
-                            icon: const Icon(Icons.place_outlined),
-                            label: const Text('Edit Toko (Lokasi/Alamat)'),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ),
-              if (auth.role != UserRole.anggota)
-                Builder(builder: (ctx) {
-                  final seller = data['seller'];
-                  if (seller != null && '${seller['status'] ?? ''}'.isNotEmpty) {
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Text('Kelola Toko', style: TextStyle(fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 8),
-                            FilledButton(
-                              onPressed: () async {
-                                try {
-                                  await ref.read(authStateProvider.notifier).switchToMerchant();
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Berhasil masuk Seller Center')));
-                                    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileEditPage()));
-                                  }
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pengajuan seller belum disetujui')));
-                                  }
-                                }
-                              },
-                              child: const Text('Edit Toko'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                }),
               if (auth.role == UserRole.anggota)
                 Card(
                   child: Padding(

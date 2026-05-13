@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import '../../../core/network/dio_client.dart';
 import '../../common/widgets/map_picker_page.dart';
 
@@ -18,7 +18,7 @@ class _SellerShopEditPageState extends ConsumerState<SellerShopEditPage> {
   final _telepon = TextEditingController();
   bool _loading = false;
   String? _error;
-  LatLng? _selectedLatLng;
+  ll.LatLng? _selectedLatLng;
 
   @override
   void initState() {
@@ -40,7 +40,7 @@ class _SellerShopEditPageState extends ConsumerState<SellerShopEditPage> {
         final lat = data['latitude'];
         final lng = data['longitude'];
         if (lat is num && lng is num) {
-          _selectedLatLng = LatLng(lat.toDouble(), lng.toDouble());
+          _selectedLatLng = ll.LatLng(lat.toDouble(), lng.toDouble());
         }
       });
     } catch (e) {
@@ -129,7 +129,7 @@ class _SellerShopEditPageState extends ConsumerState<SellerShopEditPage> {
                           onPressed: _loading
                               ? null
                               : () async {
-                                  final res = await Navigator.of(context).push<LatLng>(
+                                  final res = await Navigator.of(context).push<ll.LatLng>(
                                     MaterialPageRoute(
                                       builder: (_) => MapPickerPage(initial: _selectedLatLng),
                                     ),
@@ -158,4 +158,3 @@ class _SellerShopEditPageState extends ConsumerState<SellerShopEditPage> {
     );
   }
 }
-

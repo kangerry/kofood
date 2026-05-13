@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart' as fmap;
+import 'package:latlong2/latlong.dart' as ll;
 import 'dart:async';
-import 'web_js_stub.dart'
-    if (dart.library.html) 'web_js_web.dart';
 
 class MapPickerPage extends StatefulWidget {
-  final LatLng? initial;
+  final ll.LatLng? initial;
   const MapPickerPage({super.key, this.initial});
 
   @override
@@ -14,32 +12,15 @@ class MapPickerPage extends StatefulWidget {
 }
 
 class _MapPickerPageState extends State<MapPickerPage> {
-  LatLng? _selected;
-  GoogleMapController? _controller;
-  bool _gmapsReady = !kIsWeb;
+  ll.LatLng? _selected;
+  final fmap.MapController _leaflet = fmap.MapController();
+  String _tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     _selected = widget.initial;
-    if (kIsWeb) {
-      _startPollingForGoogle();
-    }
-  }
-
-  void _startPollingForGoogle() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(milliseconds: 200), (t) {
-      if (hasGoogleMaps()) {
-        t.cancel();
-        if (mounted) {
-          setState(() {
-            _gmapsReady = true;
-          });
-        }
-      }
-    });
   }
 
   @override
@@ -50,27 +31,27 @@ class _MapPickerPageState extends State<MapPickerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final LatLng initialCamera = widget.initial ?? const LatLng(-6.175392, 106.827153); // Monas, Jakarta
-    final markers = <Marker>{
-      if (_selected != null)
-        Marker(markerId: const MarkerId('selected'), position: _selected!, draggable: false),
-    };
+    final ll.LatLng initialCenter = widget.initial ?? const ll.LatLng(-6.175392, 106.827153);
     return Scaffold(
       appBar: AppBar(title: const Text('Pilih Lokasi di Peta')),
       body: Column(
         children: [
           Expanded(
-            child: !_gmapsReady
-                ? const Center(child: CircularProgressIndicator())
-                : GoogleMap(
-                    initialCameraPosition: CameraPosition(target: initialCamera, zoom: 14),
-                    onTap: (pos) => setState(() => _selected = pos),
-                    markers: markers,
-                    onMapCreated: (c) => _controller = c,
-                    myLocationButtonEnabled: true,
-                    myLocationEnabled: false,
-                    zoomControlsEnabled: true,
-                  ),
+            child: fmap.FlutterMap(
+              mapController: _leaflet,
+              options: fmap.MapOptions(
+                initialCenter: initialCenter,
+                initialZoom: 14,
+                onTap: (tapPos, latLng) => setState(() => _selected = latLng),
+              ),
+              children: [
+                fmap.TileLayer(urlTemplate: _tileUrl, userAgentPackageName: 'com.example.komera_mobile'),
+                fmap.MarkerLayer(markers: [
+                  if (_selected != null)
+                    fmap.Marker(point: _selected!, width: 30, height: 30, child: const Icon(Icons.place, color: Colors.redAccent)),
+                ]),
+              ],
+            ),
           ),
           SafeArea(
             top: false,
@@ -90,7 +71,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
                     onPressed: _selected == null
                         ? null
                         : () {
-                            Navigator.of(context).pop<LatLng>(_selected);
+                            Navigator.of(context).pop<ll.LatLng>(_selected);
                           },
                     child: const Text('Gunakan Lokasi'),
                   ),

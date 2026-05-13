@@ -14,7 +14,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  String _type = 'auto';
   bool _loading = false;
   String? _error;
 
@@ -28,7 +27,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await ref.read(authStateProvider.notifier).loginEmail(
             email: _email.text.trim(),
             password: _password.text,
-            type: _type == 'auto' ? null : _type,
+            type: 'anggota',
           );
     } catch (e) {
       String msg = 'Gagal login';
@@ -103,17 +102,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               validator: (v) => v == null || v.isEmpty || !v.contains('@') ? 'Email tidak valid' : null,
                             ),
                             const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            value: _type,
-                            items: const [
-                              DropdownMenuItem(value: 'auto', child: Text('Auto')),
-                              DropdownMenuItem(value: 'anggota', child: Text('Masuk sebagai Anggota')),
-                              DropdownMenuItem(value: 'merchant', child: Text('Masuk sebagai Merchant')),
-                            ],
-                            onChanged: _loading ? null : (v) => setState(() => _type = v ?? 'auto'),
-                            decoration: const InputDecoration(labelText: 'Jenis Akun'),
-                          ),
-                          const SizedBox(height: 12),
                             TextFormField(
                               controller: _password,
                               obscureText: true,

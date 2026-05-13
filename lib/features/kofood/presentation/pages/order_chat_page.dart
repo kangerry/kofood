@@ -49,7 +49,11 @@ class _OrderChatPageState extends ConsumerState<OrderChatPage> {
       await dio.post('/api/v1/kofood/orders/${widget.orderId}/chat', data: {'message': text});
       _controller.clear();
       await _poll();
-    } catch (_) {} finally {
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mengirim: $e')));
+      }
+    } finally {
       if (mounted) setState(() => _sending = false);
     }
   }
@@ -77,6 +81,7 @@ class _OrderChatPageState extends ConsumerState<OrderChatPage> {
               itemBuilder: (ctx, i) {
                 final m = _messages[i];
                 final sender = '${m['sender_type'] ?? ''}';
+                final senderName = '${m['sender_name'] ?? ''}'.trim();
                 final mine = (role == UserRole.anggota && sender == 'anggota') || (role == UserRole.merchant && sender == 'merchant');
                 final bubble = Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -97,7 +102,10 @@ class _OrderChatPageState extends ConsumerState<OrderChatPage> {
                         Text('${m['message']}', style: const TextStyle(fontSize: 15)),
                       const SizedBox(height: 4),
                       Text(
-                        sender.toUpperCase(),
+                        [
+                          sender.toUpperCase() + (senderName.isNotEmpty ? ' ($senderName)' : ''),
+                          '${m['created_at'] ?? ''}'
+                        ].where((x) => x.trim().isNotEmpty).join(' • '),
                         style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                       ),
                     ],
@@ -146,4 +154,3 @@ class _OrderChatPageState extends ConsumerState<OrderChatPage> {
     );
   }
 }
-

@@ -3,7 +3,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/providers/auth_provider.dart';
-import 'register_merchant_page.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -88,11 +87,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       FilledButton(
                         onPressed: _loading ? null : _register,
                         child: _loading ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Daftar'),
-                      ),
-                      const SizedBox(height: 8),
-                      OutlinedButton(
-                        onPressed: _loading ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterMerchantPage())),
-                        child: const Text('Daftar Merchant'),
                       ),
                     ],
                   ),

@@ -25,6 +25,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
+    // packagingOptions purposely left default; splits will handle ABIs
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
@@ -40,6 +41,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders["mapsApiKey"] = mapsApiKey
+        // ndk abiFilters removed to avoid conflict with splits ABI
     }
 
     buildTypes {

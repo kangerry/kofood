@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/providers/auth_provider.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import '../../common/widgets/map_picker_page.dart';
 
 class RegisterMerchantPage extends ConsumerStatefulWidget {
@@ -24,7 +24,7 @@ class _RegisterMerchantPageState extends ConsumerState<RegisterMerchantPage> {
   final _pirt = TextEditingController();
   bool _loading = false;
   String? _error;
-  LatLng? _selectedLatLng;
+  ll.LatLng? _selectedLatLng;
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
@@ -160,7 +160,7 @@ class _RegisterMerchantPageState extends ConsumerState<RegisterMerchantPage> {
                           onPressed: _loading
                               ? null
                               : () async {
-                                  final res = await Navigator.of(context).push<LatLng>(
+                                  final res = await Navigator.of(context).push<ll.LatLng>(
                                     MaterialPageRoute(
                                       builder: (_) => MapPickerPage(initial: _selectedLatLng),
                                     ),

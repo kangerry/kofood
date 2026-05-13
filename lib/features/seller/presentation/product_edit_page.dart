@@ -5,6 +5,7 @@ import '../../../core/network/dio_client.dart';
 import 'image_picker_stub.dart'
     if (dart.library.html) 'image_picker_web.dart'
     if (dart.library.io) 'image_picker_io.dart';
+import 'package:go_router/go_router.dart';
 
 class ProductEditPage extends ConsumerStatefulWidget {
   final String productId;
@@ -22,6 +23,8 @@ class _ProductEditPageState extends ConsumerState<ProductEditPage> {
   List<_Category> _categories = const [];
   int? _selectedCategoryId;
   List<_Photo> _photos = const [];
+  List<Map<String, dynamic>> _allOptionGroups = const [];
+  List<int> _attachedGroupIds = const [];
 
   @override
   void initState() {
@@ -30,7 +33,7 @@ class _ProductEditPageState extends ConsumerState<ProductEditPage> {
   }
 
   Future<void> _loadInitial() async {
-    await Future.wait([_loadCategories(), _loadProduct(), _loadPhotos()]);
+    await Future.wait([_loadCategories(), _loadProduct(), _loadPhotos(), _loadOptions()]);
   }
 
   Future<void> _loadCategories() async {
@@ -67,6 +70,91 @@ class _ProductEditPageState extends ConsumerState<ProductEditPage> {
         _price.text = price.toStringAsFixed(0);
       });
     } catch (_) {}
+  }
+
+  Future<void> _loadOptions() async {
+    try {
+      final dio = ref.read(dioProvider);
+      final resAll = await dio.get('/api/v1/seller/option-groups');
+      final List all = resAll.data?['data'] as List? ?? const [];
+      final allGroups = all.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      final resAttached = await dio.get('/api/v1/seller/products/${widget.productId}/option-groups');
+      final List attached = resAttached.data?['data'] as List? ?? const [];
+      final attachedIds = attached
+          .map((e) {
+            final m = Map<String, dynamic>.from(e as Map);
+            return (m['id'] as num?)?.toInt() ?? int.tryParse((m['id'] ?? '').toString()) ?? 0;
+          })
+          .where((x) => x > 0)
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _allOptionGroups = allGroups;
+        _attachedGroupIds = attachedIds;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _allOptionGroups = const [];
+        _attachedGroupIds = const [];
+      });
+    }
+  }
+
+  Future<void> _editAttachedGroups() async {
+    if (_allOptionGroups.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Belum ada group opsi. Tambahkan dulu.')));
+      return;
+    }
+    final selected = {..._attachedGroupIds};
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setState) {
+          return AlertDialog(
+            title: const Text('Opsi untuk Produk'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView(
+                shrinkWrap: true,
+                children: _allOptionGroups.map((g) {
+                  final id = (g['id'] as num?)?.toInt() ?? int.tryParse((g['id'] ?? '').toString()) ?? 0;
+                  final name = (g['name'] ?? '').toString();
+                  return CheckboxListTile(
+                    value: selected.contains(id),
+                    onChanged: (v) => setState(() {
+                      if (v == true) {
+                        selected.add(id);
+                      } else {
+                        selected.remove(id);
+                      }
+                    }),
+                    title: Text(name),
+                  );
+                }).toList(),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Batal')),
+              FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Simpan')),
+            ],
+          );
+        });
+      },
+    );
+    if (ok != true) return;
+    try {
+      final dio = ref.read(dioProvider);
+      await dio.put('/api/v1/seller/products/${widget.productId}/option-groups', data: {'group_ids': selected.toList()});
+      await _loadOptions();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opsi produk diperbarui')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: $e')));
+      }
+    }
   }
 
   Future<void> _loadPhotos() async {
@@ -219,6 +307,39 @@ class _ProductEditPageState extends ConsumerState<ProductEditPage> {
                       label: const Text('Upload Foto'),
                     ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: Text('Opsi Tambahan', style: Theme.of(context).textTheme.titleMedium)),
+                  TextButton.icon(
+                    onPressed: () => context.push('/seller/options'),
+                    icon: const Icon(Icons.tune),
+                    label: const Text('Kelola'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (_attachedGroupIds.isEmpty)
+                Text('Belum ada opsi yang dipasang ke produk ini', style: TextStyle(color: Colors.grey.shade700))
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _attachedGroupIds.map((id) {
+                    final g = _allOptionGroups.firstWhere(
+                      (e) => ((e['id'] as num?)?.toInt() ?? int.tryParse((e['id'] ?? '').toString()) ?? 0) == id,
+                      orElse: () => const <String, dynamic>{},
+                    );
+                    final name = (g['name'] ?? 'Group $id').toString();
+                    return Chip(label: Text(name));
+                  }).toList(),
+                ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: _saving ? null : _editAttachedGroups,
+                icon: const Icon(Icons.link),
+                label: const Text('Atur Opsi untuk Produk'),
               ),
               const SizedBox(height: 16),
               FilledButton(
